@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch Rename Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    /* General Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f5f5f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #1d1d1f;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 600px;
+      background-color: white;
+      border-radius: 24px;
+      padding: 20px 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #6e6e73;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: inline-block;
+      padding: 12px 30px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: white;
+      background-color: #0071e3;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    label:hover {
+      background-color: #005bb5;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .controls input {
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #d2d2d7;
+      border-radius: 10px;
+      background-color: #f5f5f7;
+      color: #1d1d1f;
+      transition: all 0.2s ease;
+    }
+
+    .controls input:focus {
+      border-color: #0071e3;
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 113, 227, 0.5);
+    }
+
+    button {
+      padding: 12px 30px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: white;
+      background-color: #0071e3;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005bb5;
+    }
+
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .gallery img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .gallery img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 0.9rem;
+      }
+
+      label, button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+
+      .controls input {
+        padding: 8px;
+        font-size: 0.9rem;
+      }
+
+      .gallery img {
+        width: 80px;
+        height: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Batch Rename Tool</h1>
+    <p>Select your image files, specify options, and download renamed files.</p>
+    <label for="file-input">Select Files</label>
+    <input type="file" id="file-input" multiple accept="image/*">
+
+    <div class="controls">
+      <input type="number" id="start-number" placeholder="Start Number (e.g., 3)">
+      <input type="number" id="end-number" placeholder="End Number (e.g., 15)">
+      <input type="text" id="prefix" placeholder="Enter Prefix (e.g., photo_)">
+    </div>
+
+    <button id="download-button">Download Renamed Images</button>
+
+    <div class="gallery" id="gallery"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("file-input");
+    const gallery = document.getElementById("gallery");
+    const downloadButton = document.getElementById("download-button");
+    const startNumberInput = document.getElementById("start-number");
+    const endNumberInput = document.getElementById("end-number");
+    const prefixInput = document.getElementById("prefix");
+
+    let selectedFiles = [];
+
+    fileInput.addEventListener("change", (event) => {
+      selectedFiles = Array.from(event.target.files);
+      gallery.innerHTML = ""; // Clear the gallery
+
+      selectedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          gallery.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    downloadButton.addEventListener("click", () => {
+      if (selectedFiles.length === 0) {
+        alert("Please select files first!");
+        return;
+      }
+
+      const startNumber = parseInt(startNumberInput.value) || 1;
+      const endNumber = parseInt(endNumberInput.value) || selectedFiles.length;
+      const prefix = prefixInput.value || "";
+
+      if (startNumber > endNumber || endNumber > selectedFiles.length) {
+        alert("Invalid range! Please adjust the start and end numbers.");
+        return;
+      }
+
+      const zip = new JSZip();
+
+      selectedFiles.slice(0, endNumber).forEach((file, index) => {
+        if (index >= startNumber - 1) {
+          const extension = file.name.split('.').pop(); // Get file extension
+          const newName = `${prefix}${index + 1}.${extension}`;
+          zip.file(newName, file); // Add the renamed file to the ZIP
+        }
+      });
+
+      // Generate the ZIP file and prompt download
+      zip.generateAsync({ type: "blob" }).then((content) => {
+        saveAs(content, "renamed-images.zip");
+      });
+    });
+  </script>
+</body>
+</html>
